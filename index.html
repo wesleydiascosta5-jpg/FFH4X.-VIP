@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FSH4X - Painel VIP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        ffred: {
+                            500: '#ff0000',
+                            600: '#d10000',
+                            700: '#a50000',
+                            900: '#500000',
+                        },
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .glow-red {
+                filter: drop-shadow(0 0 8px #ff0000);
+            }
+            .draggable-header {
+                touch-action: none;
+                user-select: none;
+                cursor: move;
+            }
+        }
+    </style>
+</head>
+<body class="bg-transparent overflow-hidden select-none">
+
+    <!-- BOTÃO PRINCIPAL (SÓ ABRE, NÃO ARRASTA) -->
+    <div id="btnAbrir" class="fixed top-1/2 left-4 z-50 w-14 h-14 rounded-full bg-gradient-to-b from-ffred-500 to-ffred-700 flex items-center justify-center shadow-lg shadow-ffred-900/50 cursor-pointer glow-red active:scale-95 transition-transform">
+        <i class="fa fa-cog fa-spin text-white text-xl"></i>
+    </div>
+
+    <!-- PAINEL PRINCIPAL (ESSE AQUI É ARRASTÁVEL PELO CABEÇALHO) -->
+    <div id="painelPrincipal" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[260px] rounded-2xl bg-gradient-to-b from-[#1a0000] to-[#0a0000] border-2 border-ffred-600/80 shadow-2xl shadow-ffred-900/40 z-40 overflow-hidden hidden">
+        
+        <!-- CABEÇALHO - ÁREA QUE ARRASTA O PAINEL -->
+        <div id="cabecalhoArrastavel" class="draggable-header bg-gradient-to-r from-ffred-700 to-ffred-500 py-3 px-4 flex justify-between items-center">
+            <h1 class="text-white font-bold text-lg tracking-wider">FSH4X VIP</h1>
+            <button id="btnFechar" class="text-white/80 hover:text-white transition-colors cursor-pointer">
+                <i class="fa fa-times"></i>
+            </button>
+        </div>
+
+        <!-- CORPO DO PAINEL -->
+        <div class="p-4 space-y-4">
+            
+            <!-- AVISO DE STATUS -->
+            <div class="bg-black/50 border border-ffred-800/40 rounded-lg p-2 text-center">
+                <span id="statusPartida" class="text-ffred-500 text-xs font-semibold">❌ FORA DA PARTIDA</span>
+            </div>
+
+            <!-- OPÇÃO 1: AIMBOT (SÓ FUNCIONA DENTRO DA PARTIDA) -->
+            <div class="flex items-center justify-between bg-black/40 border border-ffred-700/30 rounded-lg p-3 transition-colors">
+                <div>
+                    <h3 class="text-white font-medium text-sm">AIMBOT</h3>
+                    <p class="text-white/50 text-[10px]">Puxa na cabeça</p>
+                </div>
+                <label class="relative inline-flex items-center">
+                    <input type="checkbox" id="toggleAimbot" class="sr-only peer" disabled>
+                    <div class="w-11 h-6 bg-gray-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ffred-600 peer-checked:glow-red peer-disabled:opacity-40"></div>
+                </label>
+            </div>
+
+            <!-- OPÇÃO 2: ESP LINHA (SÓ FUNCIONA DENTRO DA PARTIDA) -->
+            <div class="flex items-center justify-between bg-black/40 border border-ffred-700/30 rounded-lg p-3 transition-colors">
+                <div>
+                    <h3 class="text-white font-medium text-sm">ESP LINHA</h3>
+                    <p class="text-white/50 text-[10px]">Ver inimigos longe</p>
+                </div>
+                <label class="relative inline-flex items-center">
+                    <input type="checkbox" id="toggleEsp" class="sr-only peer" disabled>
+                    <div class="w-11 h-6 bg-gray-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ffred-600 peer-checked:glow-red peer-disabled:opacity-40"></div>
+                </label>
+            </div>
+
+        </div>
+
+        <!-- RODAPÉ -->
+        <div class="bg-black/60 py-2 px-3 border-t border-ffred-900/30 text-center">
+            <span class="text-ffred-500 text-[10px] font-bold">PARA FREE FIRE</span>
+        </div>
+    </div>
+
+    <!-- ÁREA DE DESENHO PARA O ESP -->
+    <canvas id="telaDesenho" class="fixed top-0 left-0 w-full h-full pointer-events-none z-30"></canvas>
+
+    <script>
+        // ========== ABRIR E FECHAR PAINEL ==========
+        const btnAbrir = document.getElementById('btnAbrir');
+        const btnFechar = document.getElementById('btnFechar');
+        const painelPrincipal = document.getElementById('painelPrincipal');
+
+        // Clicou no botãozinho -> abre o painel
+        btnAbrir.addEventListener('click', () => {
+            painelPrincipal.classList.remove('hidden');
+        });
+
+        // Clicou no X -> fecha o painel
+        btnFechar.addEventListener('click', () => {
+            painelPrincipal.classList.add('hidden');
+        });
+
+        // ========== ARRASTAR O PAINEL PELO CABEÇALHO ==========
+        const cabecalhoArrastavel = document.getElementById('cabecalhoArrastavel');
+        let isDragging = false;
+        let offsetX, offsetY;
+
+        // Começa a segurar no nome FSH4X
+        cabecalhoArrastavel.addEventListener('mousedown', (e) => {
+            iniciarArraste(e.clientX, e.clientY);
+        });
+        cabecalhoArrastavel.addEventListener('touchstart', (e) => {
+            const toque = e.touches[0];
+            iniciarArraste(toque.clientX, toque.clientY);
+            e.preventDefault(); // Evita selecionar texto
+        });
+
+        function iniciarArraste(clientX, clientY) {
+            isDragging = true;
+            const rect = painelPrincipal.getBoundingClientRect();
+            // Calcula a distância do canto do painel até onde o dedo clicou
+            offsetX = clientX - rect.left;
+            offsetY = clientY - rect.top;
+            painelPrincipal.style.transform = 'none'; // Tira o centro automático para mover livremente
+        }
+
+        // Move o painel junto com o dedo
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            moverPainel(e.clientX, e.clientY);
+        });
+        document.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            const toque = e.touches[0];
+            moverPainel(toque.clientX, toque.clientY);
+            e.preventDefault();
+        });
+
+        function moverPainel(clientX, clientY) {
+            painelPrincipal.style.left = (clientX - offsetX) + 'px';
+            painelPrincipal.style.top = (clientY - offsetY) + 'px';
+        }
+
+        // Soltou o dedo -> para de arrastar
+        document.addEventListener('mouseup', () => isDragging = false);
+        document.addEventListener('touchend', () => isDragging = false);
+
+
+        // ========== CONTROLE DE FUNÇÕES (SÓ DENTRO DA PARTIDA) ==========
+        const statusPartida = document.getElementById('statusPartida');
+        const toggleAimbot = document.getElementById('toggleAimbot');
+        const toggleEsp = document.getElementById('toggleEsp');
+        const canvas = document.getElementById('telaDesenho');
+        const ctx = canvas.getContext('2d');
+
+        // Ajusta tamanho da tela
+        function ajustarCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', ajustarCanvas);
+        ajustarCanvas();
+
+        let estaNaPartida = false;
+        let aimbotAtivado = false;
+        let espAtivado = false;
+
+        // ✅ CHAME ESSA FUNÇÃO QUANDO DETECTAR QUE ENTROU NA PARTIDA DO JOGO
+        function liberarFuncoes() {
+            estaNaPartida = true;
+            statusPartida.textContent = "✅ EM PARTIDA - LIBERADO";
+            statusPartida.classList.remove('text-ffred-500');
+            statusPartida.classList.add('text-green-500');
+            toggleAimbot.disabled = false;
+            toggleEsp.disabled = false;
+        }
+
+        // ❌ CHAME ESSA FUNÇÃO QUANDO SAIR DA PARTIDA OU VOLTAR AO MENU
+        function bloquearFuncoes() {
+            estaNaPartida = false;
+            statusPartida.textContent = "❌ FORA DA PARTIDA";
+            statusPartida.classList.remove('text-green-500');
+            statusPartida.classList.add('text-ffred-500');
+            toggleAimbot.disabled = true;
+            toggleEsp.disabled = true;
+            toggleAimbot.checked = false;
+            toggleEsp.checked = false;
+            aimbotAtivado = false;
+            espAtivado = false;
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+        }
+
+        // 🧪 SIMULAÇÃO: APÓS 5 SEGUNDOS ENTRA NA PARTIDA (VOCÊ PODE APAGAR ESSA LINHA)
+        setTimeout(liberarFuncoes, 5000);
+
+
+        // ========== AÇÕES DOS BOTÕES ==========
+        toggleAimbot.addEventListener('change', function() {
+            // Se estiver fora da partida, nem deixa mudar
+            if(!estaNaPartida) { this.checked = false; return; }
+
+            aimbotAtivado = this.checked;
+            console.log("Aimbot:", aimbotAtivado ? "ATIVADO ✅" : "DESATIVADO ❌");
+            // === COLOQUE AQUI O CÓDIGO DO AIMBOT PUXAR CABEÇA ===
+        });
+
+        toggleEsp.addEventListener('change', function() {
+            // Se estiver fora da partida, nem deixa mudar
+            if(!estaNaPartida) { this.checked = false; return; }
+
+            espAtivado = this.checked;
+            console.log("ESP Linha:", espAtivado ? "ATIVADO ✅" : "DESATIVADO ❌");
+            
+            if(espAtivado) {
+                animacaoESP();
+            } else {
+                ctx.clearRect(0,0,canvas.width,canvas.height);
+            }
+        });
+
+        // ========== DESENHO DO ESP LINHA ==========
+        function animacaoESP() {
+            if(!espAtivado) return;
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+
+            // EXEMPLO DE LINHA VERMELHA (AQUI VOCÊ CONECTA AS COORDENADAS REAIS)
+            ctx.beginPath();
+            ctx.moveTo(canvas.width * 0.8, canvas.height * 0.85); // Pé
+            ctx.lineTo(canvas.width * 0.8, canvas.height * 0.25);  // Cabeça
+            ctx.strokeStyle = '#ff0000';
+            ctx.lineWidth = 2;
+            ctx.shadowColor = '#ff0000';
+            ctx.shadowBlur = 12;
+            ctx.stroke();
+
+            requestAnimationFrame(animacaoESP);
+        }
+
+    </script>
+</body>
+</html>
+
